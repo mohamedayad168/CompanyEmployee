@@ -1,5 +1,6 @@
 
 using CompanyEmployee.API.Extensions;
+using CompanyEmployees.Presentation.Filters;
 using Contracts;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
@@ -51,6 +52,7 @@ namespace CompanyEmployee.API
                 .AddCustomCSVFormatter()
                 .AddApplicationPart(typeof(CompanyEmployees.Presentation.AssemblyReference).Assembly);
             builder.Services.AddAutoMapper(typeof(Program));
+            builder.Services.AddScoped<ValidationFilterAttribute>();
             var app = builder.Build();
 
             var logger = app.Services.GetRequiredService<ILoggerManager>();
