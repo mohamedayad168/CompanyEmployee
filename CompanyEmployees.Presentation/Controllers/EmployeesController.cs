@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Service.Contracts;
 using Shared.DTO;
+using Shared.RequestFeatures;
+using System.Text.Json;
 
 namespace CompanyEmployees.Presentation.Controllers
 {
@@ -13,10 +15,11 @@ namespace CompanyEmployees.Presentation.Controllers
         private readonly IServiceManager _service;
         public EmployeesController(IServiceManager service) => _service = service;
         [HttpGet]
-        public async Task<IActionResult> GetEmployeesForCompany(Guid companyId)
+        public async Task<IActionResult> GetEmployeesForCompany(Guid companyId, [FromQuery] EmployeeParameters employeeParameters)
         {
-            var employees = await _service.EmployeeService.GetEmployees(companyId, trackChanges: false);
-            return Ok(employees);
+            var pagedResult = await _service.EmployeeService.GetEmployees(companyId, false, employeeParameters);
+            Response.Headers.Add("X-Pagination", JsonSerializer.Serialize(pagedResult.metaData));
+            return Ok(pagedResult.employees);
         }
 
         [HttpGet("{id:guid}", Name = "GetEmployeeForCompany")]

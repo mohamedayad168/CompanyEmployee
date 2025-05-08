@@ -4,6 +4,8 @@ using Entities.Exceptions;
 using Entities.Models;
 using Service.Contracts;
 using Shared.DTO;
+using Shared.RequestFeatures;
+using System.Dynamic;
 
 namespace Service
 {
@@ -12,12 +14,14 @@ namespace Service
         private readonly IRepositoryManger _repository;
         private readonly ILoggerManager _logger;
         private readonly IMapper _mapper;
+        private readonly IDataShaper<EmployeeDto> _dataShaper;
 
-        public EmployeeService(IRepositoryManger repository, ILoggerManager logger, IMapper mapper)
+        public EmployeeService(IRepositoryManger repository, ILoggerManager logger, IMapper mapper, IDataShaper<EmployeeDto> dataShaper)
         {
             _repository = repository;
             _logger = logger;
             _mapper = mapper;
+            _dataShaper = dataShaper;
         }
 
         public async Task<EmployeeDto> CreateEmployeeForCompany(Guid companyId, EmployeeForCreationDto employeeForCreation, bool trackChanges)
@@ -64,13 +68,19 @@ namespace Service
             return (employeeToPatch, employeeEntity);
         }
 
-        public async Task<IEnumerable<EmployeeDto>> GetEmployees(Guid companyId, bool trackChanges)
+        public async Task<(IEnumerable<ExpandoObject> employees, MetaData metaData)> GetEmployees(Guid companyId, bool trackChanges, EmployeeParameters employeeParameters)
         {
+            if (!employeeParameters.ValidAgeRange)
+                throw new MaxAgeRangeBadRequestException();
+
             await CheckIfCompanyExists(companyId, trackChanges);
 
-            var employees = await _repository.Employee.GetEmployees(companyId, trackChanges);
+            var employeesWithMetaData = await _repository.Employee.GetEmployees(companyId, trackChanges, employeeParameters);
 
-            return _mapper.Map<IEnumerable<EmployeeDto>>(employees);
+            var employeesDto = _mapper.Map<IEnumerable<EmployeeDto>>(employeesWithMetaData);
+            var shapedData = _dataShaper.ShapeData(employeesDto, employeeParameters.Fields);
+
+            return (employees: shapedData, metaData: employeesWithMetaData.MetaData);
         }
 
         public async Task SaveChangesForPatch(EmployeeForUpdateDto employeeToPatch, Employee employeeEntity)

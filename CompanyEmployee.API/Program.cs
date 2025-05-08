@@ -1,4 +1,5 @@
 
+using AspNetCoreRateLimit;
 using CompanyEmployee.API.Extensions;
 using CompanyEmployees.Presentation.Filters;
 using Contracts;
@@ -7,6 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.Extensions.Options;
 using NLog;
+using Service.DataShaping;
+using Shared.DTO;
 
 namespace CompanyEmployee.API
 {
@@ -47,12 +50,22 @@ namespace CompanyEmployee.API
                 config.RespectBrowserAcceptHeader = true;
                 config.ReturnHttpNotAcceptable = true;
                 config.InputFormatters.Insert(0, GetJsonPatchInputFormatter());
+                config.CacheProfiles.Add("120SecondsDuration", new CacheProfile { Duration = 120 });
             })
                 .AddXmlDataContractSerializerFormatters()
                 .AddCustomCSVFormatter()
                 .AddApplicationPart(typeof(CompanyEmployees.Presentation.AssemblyReference).Assembly);
             builder.Services.AddAutoMapper(typeof(Program));
             builder.Services.AddScoped<ValidationFilterAttribute>();
+            builder.Services.AddScoped<IDataShaper<EmployeeDto>, DataShaper<EmployeeDto>>();
+            builder.Services.ConfigureVersioning();
+            builder.Services.ConfigureResponseCaching();
+            builder.Services.ConfigureHttpCacheHeaders();
+            builder.Services.AddMemoryCache();
+            builder.Services.ConfigureRateLimitingOptions();
+            builder.Services.AddHttpContextAccessor();
+            builder.Services.AddAuthentication();
+            builder.Services.ConfigureIdentity();
             var app = builder.Build();
 
             var logger = app.Services.GetRequiredService<ILoggerManager>();
@@ -73,7 +86,15 @@ namespace CompanyEmployee.API
 
             app.UseForwardedHeaders(new ForwardedHeadersOptions { ForwardedHeaders = ForwardedHeaders.All });
 
+            app.UseIpRateLimiting();
+
             app.UseCors("CorsPolicy");
+
+            app.UseResponseCaching();
+
+            app.UseHttpCacheHeaders();
+
+            app.UseAuthentication();
 
             app.UseAuthorization();
 

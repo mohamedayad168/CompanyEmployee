@@ -7,6 +7,7 @@ namespace CompanyEmployees.Presentation.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    //[ResponseCache(CacheProfileName = "120SecondsDuration")]
     public class CompaniesController : ControllerBase
     {
         private readonly IServiceManager _service;
@@ -15,7 +16,7 @@ namespace CompanyEmployees.Presentation.Controllers
         {
             _service = serviceManager;
         }
-        [HttpGet]
+        [HttpGet(Name = "GetCompanies")]
         public async Task<IActionResult> GetCompanies()
         {
 
@@ -23,14 +24,17 @@ namespace CompanyEmployees.Presentation.Controllers
             return Ok(companies);
         }
         [HttpGet("{id:guid}", Name = "CompanyById")]
+
         public async Task<IActionResult> GetCompany(Guid id)
         {
             var company = await _service.CompanyService.GetCompany(id, trackChanges: false);
             return Ok(company);
         }
 
-        [HttpPost]
+        [HttpPost(Name = "CreateCompany")]
+
         [ServiceFilter(typeof(ValidationFilterAttribute))]
+
         public async Task<IActionResult> CreateCompany([FromBody] CompanyForCreationDto company)
         {
 
