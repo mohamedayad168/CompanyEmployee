@@ -1,4 +1,5 @@
 ﻿using CompanyEmployees.Presentation.Filters;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Service.Contracts;
 using Shared.DTO;
@@ -17,6 +18,7 @@ namespace CompanyEmployees.Presentation.Controllers
             _service = serviceManager;
         }
         [HttpGet(Name = "GetCompanies")]
+        [Authorize]
         public async Task<IActionResult> GetCompanies()
         {
 
